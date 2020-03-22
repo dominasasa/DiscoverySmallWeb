@@ -1,43 +1,42 @@
 from flask import Flask
 import requests
 import json
+from flask.json import jsonify
+from json import JSONEncoder
 
 app = Flask(__name__)
 
 
 @app.route('/home')
 def tags():
+    discovery_repositories =[]
 
-    discovery_repositories = get_discovery_repositories(
-        "https://api.github.com/users/dominasasa/repos")
+    discovery_repositories = get_discovery_repositories('https://api.github.com/users/dominasasa/repos')
 
-    response = requests.get(
-        'https://api.github.com/repos/dominasasa/DiscoveryArduino/git/refs/tags')
+    return json.dumps(discovery_repositories)
 
-    if response.status_code == requests.codes.ok:
-        tag_response = json.loads(response.content)
 
-        release = get_release(tag_response)
-    else:
-        tag_response = "dupa"
+def get_version_list(tags_url):
+    version_list = []
 
+    tag_list_response = requests.get(tags_url, headers={'Authorization': 'Bearer <token>'})
+
+    if tag_list_response.status_code == requests.codes.ok:
+        tag_list = json.loads(tag_list_response.content)
+        for version in tag_list:
+            version_list.append(get_version(version))
+    return version_list
+
+def get_version(version):
+    release = version['name'].split('release/')[-1]
     return release
-
-
-def get_release(tag_response):
-    ref = tag_response[0]['ref']
-    release = ref.split('release/')[-1]
-    return release
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
 
 
 def get_discovery_repositories(url):
+
     repositories = []
 
-    response = requests.get(url)
+    response = requests.get(url, headers={'Authorization': 'Bearer <token>'})
 
     if response.status_code == requests.codes.ok:
         repo_response = json.loads(response.content)
@@ -46,25 +45,17 @@ def get_discovery_repositories(url):
                 name = repo['name']
                 author = repo['owner']['login']
                 version_list = get_version_list(repo['tags_url'])
-                current_version = version_list[-1]
+                current_version = version_list[-1] if version_list else ""
+                is_finished = True if version_list else False
+                url = repo['html_url']
+                repository = Repository(
+                    name, author, version_list, current_version, is_finished, url)
+                repositories.append(repository)
 
-                is_finished = is_project_finished()
-
-
-def get_version_list(tags_url):
-    version_list =[]
-
-    tag_list_response = requests.get(tags_url)
-
-    if tag_list_response.status_code == requests.codes.ok:
-        tag_list = json.loads(tag_list_response)
-        for version in tag_list:
-            version_list.append(get_version(version))
-    
-    return version_list
+    return repositories
 
 
-class Repository:
+class Repository(dict):
 
     def __init__(self, name, author, version_list, current_version, is_finished, url):
         self.name = name
@@ -73,3 +64,8 @@ class Repository:
         self.current_version = current_version
         self.is_finished = is_finished
         self.url = url
+        dict.__init__(self, name=name, author=author, version_list=version_list, current_version=current_version, is_finished=is_finished,url=url)
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
