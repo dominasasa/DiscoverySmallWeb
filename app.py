@@ -3,12 +3,17 @@ import requests
 import json
 from flask.json import jsonify
 from json import JSONEncoder
+from flask.templating import render_template
 
 app = Flask(__name__)
 
 
+@app.route('/')
+def main():
+    return render_template('main.html')
+
 @app.route('/home')
-def tags():
+def directories():
     discovery_repositories =[]
 
     discovery_repositories = get_discovery_repositories('https://api.github.com/users/dominasasa/repos')
