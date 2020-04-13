@@ -19,7 +19,7 @@ def tags():
 def get_version_list(tags_url):
     version_list = []
 
-    tag_list_response = requests.get(tags_url, headers={'Authorization': 'Bearer <token>'})
+    tag_list_response = requests.get(tags_url)
 
     if tag_list_response.status_code == requests.codes.ok:
         tag_list = json.loads(tag_list_response.content)
@@ -36,7 +36,7 @@ def get_discovery_repositories(url):
 
     repositories = []
 
-    response = requests.get(url, headers={'Authorization': 'Bearer <token>'})
+    response = requests.get(url)
 
     if response.status_code == requests.codes.ok:
         repo_response = json.loads(response.content)
